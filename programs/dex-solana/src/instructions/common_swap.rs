@@ -106,29 +106,63 @@ pub struct SwapEvent {
     pub amount_out: u64,
 }
 
+/**
+ * 通用交换函数，T 是实现了 CommonSwapProcessor trait 的类型
+ * - 1.记录信息 ：记录交换的基本信息和交换前的余额信息。
+ * - 2.验证权限 ：验证 SA 权限账户的有效性。
+ * - 3.获取账户 ：从交换处理器获取交换所需的源账户和目标账户。
+ * - 4.交换前处理 ：执行交换前的钩子函数，获取实际的输入金额。
+ * - 5.执行交换 ：调用 execute_swap 函数执行实际的交换操作，获取输出金额。
+ * - 6.交换后处理 ：执行交换后的钩子函数。
+ * - 7.计算变化量 ：计算交换前后源代币和目标代币的余额变化量。
+ * - 8.检查结果 ：检查目标代币的变化量是否达到最小返回金额要求。
+ * - 9.返回结果 ：返回目标代币的变化量。
+ */
 pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
+    // 交换处理器实例，用于处理交换逻辑
     swap_processor: &T,
+    // 支付交易费用的账户信息
     payer: &AccountInfo<'info>,
+    // 交易所有者的账户信息
     owner: &AccountInfo<'info>,
+    // 所有者的种子信息，用于生成 PDA（Program Derived Address），可选参数
     owner_seeds: Option<&[&[&[u8]]]>,
+    // 源代币账户，可变引用，用于在交换过程中修改账户信息
     source_token_account: &mut InterfaceAccount<'info, TokenAccount>,
+    // 目标代币账户，可变引用，用于在交换过程中修改账户信息
     destination_token_account: &mut InterfaceAccount<'info, TokenAccount>,
+    // 源代币的铸造账户信息，不可变引用
     source_mint: &InterfaceAccount<'info, Mint>,
+    // 目标代币的铸造账户信息，不可变引用
     destination_mint: &InterfaceAccount<'info, Mint>,
+    // SA（Smart Account）权限账户，可选参数
     sa_authority: &Option<UncheckedAccount<'info>>,
+    // 源代币的 SA 账户，可变引用，可选参数
     source_token_sa: &mut Option<UncheckedAccount<'info>>,
+    // 目标代币的 SA 账户，可变引用，可选参数
     destination_token_sa: &mut Option<UncheckedAccount<'info>>,
+    // 源代币程序接口，可选参数
     source_token_program: &Option<Interface<'info, TokenInterface>>,
+    // 目标代币程序接口，可选参数
     destination_token_program: &Option<Interface<'info, TokenInterface>>,
+    // 关联代币程序，可选参数
     associated_token_program: &Option<Program<'info, AssociatedToken>>,
+    // 系统程序，可选参数
     system_program: &Option<Program<'info, System>>,
+    // 剩余的账户信息切片，通常包含交换所需的其他账户
     remaining_accounts: &'info [AccountInfo<'info>],
+    // 交换参数，包含交换金额、预期输出、最小返回金额等信息
     args: SwapArgs,
+    // 交换订单 ID，用于标识本次交换
     order_id: u64,
+    // 手续费率，可选参数
     fee_rate: Option<u32>,
+    // 手续费方向，可选参数，可能用于指示手续费是从输入还是输出中扣除
     fee_direction: Option<bool>,
+    // 手续费代币账户，可选参数
     fee_token_account: Option<&InterfaceAccount<'info, TokenAccount>>,
 ) -> Result<u64> {
+    // 记录交换的基本信息，包括订单 ID、源代币和目标代币的铸造账户、所有者信息等
     log_swap_basic_info(
         order_id,
         &source_mint.key(),
@@ -137,6 +171,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         &destination_token_account.owner,
     );
 
+    // 记录交换前源代币和目标代币账户的余额，以及最小返回金额
     let before_source_balance = source_token_account.amount;
     let before_destination_balance = destination_token_account.amount;
     let min_return = args.min_return;
@@ -149,7 +184,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         min_return,
     );
 
-    // Verify sa_authority is valid
+    // 验证 SA 权限账户是否有效
     if sa_authority.is_some() {
         require!(
             sa_authority.as_ref().unwrap().key() == authority_pda::ID,
@@ -157,7 +192,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         );
     }
 
-    // get swap accounts
+    // 获取交换所需的源账户和目标账户
     let (mut source_account, mut destination_account) = swap_processor.get_swap_accounts(
         payer,
         source_token_account,
@@ -173,7 +208,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         system_program,
     )?;
 
-    // before swap hook
+    // 执行交换前的钩子函数，获取实际的输入金额
     let real_amount_in = swap_processor.before_swap(
         owner,
         source_token_account,
@@ -187,7 +222,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         fee_token_account,
     )?;
 
-    // Common swap
+    // 执行通用的交换操作，获取输出金额
     let amount_out = execute_swap(
         &mut source_account,
         &mut destination_account,
@@ -199,7 +234,7 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         owner_seeds,
     )?;
 
-    // after swap hook
+    // 执行交换后的钩子函数
     swap_processor.after_swap(
         sa_authority,
         destination_token_account,
@@ -213,23 +248,27 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         fee_token_account,
     )?;
 
-    // source token account has been closed in pumpfun buy
+    // 检查源代币账户是否已关闭，获取交换后的源代币余额
     let after_source_balance = if source_token_account.get_lamports() != 0 {
         source_token_account.reload()?;
         source_token_account.amount
     } else {
         0
     };
+    // 计算源代币的变化量
     let source_token_change = before_source_balance
         .checked_sub(after_source_balance)
         .ok_or(ErrorCode::CalculationError)?;
 
+    // 重新加载目标代币账户信息，获取交换后的目标代币余额
     destination_token_account.reload()?;
     let after_destination_balance = destination_token_account.amount;
+    // 计算目标代币的变化量
     let destination_token_change = after_destination_balance
         .checked_sub(before_destination_balance)
         .ok_or(ErrorCode::CalculationError)?;
 
+    // 记录交换结束时的余额信息和代币变化量
     log_swap_end(
         after_source_balance,
         after_destination_balance,
@@ -237,14 +276,19 @@ pub fn common_swap<'info, T: CommonSwapProcessor<'info>>(
         destination_token_change,
     );
 
-    // Check min return
+    // 检查目标代币的变化量是否达到最小返回金额要求
     require!(
         destination_token_change >= min_return,
         ErrorCode::MinReturnNotReached
     );
+    // 返回目标代币的变化量
     Ok(destination_token_change)
 }
 
+/**
+ * 增加了对佣金、平台费用和修剪率的支持，优化了费用处理逻辑，同时增强了对账户关闭情况的处理。
+ * 整体上， common_swap_v3 功能更加复杂和完善，适用于需要处理更多费用场景的交换操作。
+ */
 pub fn common_swap_v3<'info, T: PlatformFeeV3Processor<'info>>(
     swap_processor: &T,
     payer: &AccountInfo<'info>,

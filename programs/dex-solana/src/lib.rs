@@ -23,6 +23,7 @@ declare_id!("6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma");
 pub mod dex_solana {
     use super::*;
 
+    // 执行标准的代币交换操作
     pub fn swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, SwapAccounts<'a>>,
         data: SwapArgs,
@@ -31,6 +32,7 @@ pub mod dex_solana {
         instructions::swap_handler(ctx, data, order_id)
     }
 
+    // 从交换日志进行交换操作
     pub fn from_swap_log<'a>(
         ctx: Context<'_, '_, 'a, 'a, FromSwapAccounts<'a>>,
         args: SwapArgs,
@@ -42,6 +44,7 @@ pub mod dex_solana {
     }
 
     // ******************** Commission Swap ******************** //
+    // 执行 SPL 代币的佣金交换操作
     pub fn commission_spl_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSPLAccounts<'a>>,
         data: CommissionSwapArgs,
@@ -50,6 +53,7 @@ pub mod dex_solana {
         instructions::commission_spl_swap_handler(ctx, data, order_id)
     }
 
+    // 执行 SOL 代币的佣金交换操作
     pub fn commission_sol_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSOLAccounts<'a>>,
         data: CommissionSwapArgs,
@@ -58,6 +62,7 @@ pub mod dex_solana {
         instructions::commission_sol_swap_handler(ctx, data, order_id)
     }
 
+    // 执行包装/解包操作并收取佣金
     pub fn commission_wrap_unwrap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionWrapUnwrapAccounts<'a>>,
         data: CommissionWrapUnwrapArgs,
@@ -66,6 +71,7 @@ pub mod dex_solana {
         instructions::commission_wrap_unwrap_handler(ctx, data, order_id)
     }
 
+    // 从交换日志执行 SOL 代币的佣金交换操作
     pub fn commission_sol_from_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSOLFromSwapAccounts<'a>>,
         args: SwapArgs,
@@ -84,6 +90,7 @@ pub mod dex_solana {
         )
     }
 
+    // 从交换日志执行 SPL 代币的佣金交换操作
     pub fn commission_spl_from_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSPLFromSwapAccounts<'a>>,
         args: SwapArgs,
@@ -103,6 +110,7 @@ pub mod dex_solana {
     }
 
     // ******************** Proxy Swap ******************** //
+    // 通过代理账户执行交换操作
     pub fn proxy_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, ProxySwapAccounts<'a>>,
         data: SwapArgs,
@@ -111,6 +119,7 @@ pub mod dex_solana {
         instructions::proxy_swap_handler(ctx, data, order_id)
     }
 
+    // 执行 SOL 代币的佣金代理交换操作
     pub fn commission_sol_proxy_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSOLProxySwapAccounts<'a>>,
         data: SwapArgs,
@@ -127,6 +136,7 @@ pub mod dex_solana {
         )
     }
 
+    // 执行 SPL 代币的佣金代理交换操作
     pub fn commission_spl_proxy_swap<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSPLProxySwapAccounts<'a>>,
         data: SwapArgs,
@@ -144,6 +154,7 @@ pub mod dex_solana {
     }
 
     // ******************** Platform Fee Swap ******************** //
+    // 执行 SOL 代币的平台手续费代理交换操作（版本2）
     pub fn platform_fee_sol_proxy_swap_v2<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSOLProxySwapAccounts<'a>>,
         args: SwapArgs,
@@ -162,6 +173,7 @@ pub mod dex_solana {
         )
     }
 
+    // 执行 SPL 代币的平台手续费代理交换操作（版本2）
     pub fn platform_fee_spl_proxy_swap_v2<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionSPLProxySwapAccounts<'a>>,
         args: SwapArgs,
@@ -180,6 +192,7 @@ pub mod dex_solana {
         )
     }
 
+    // 执行 SOL 代币的平台手续费包装/解包操作（版本2）
     pub fn platform_fee_sol_wrap_unwrap_v2<'a>(
         ctx: Context<'_, '_, 'a, 'a, PlatformFeeWrapUnwrapAccountsV2<'a>>,
         args: PlatformFeeWrapUnwrapArgsV2,
@@ -189,6 +202,7 @@ pub mod dex_solana {
     }
 
     // ******************** Swap V3 ******************** //
+    // 执行 V3 版本的交换操作，支持佣金和平台手续费
     pub fn swap_v3<'a>(
         ctx: Context<'_, '_, 'a, 'a, CommissionProxySwapAccountsV3<'a>>,
         args: SwapArgs,
